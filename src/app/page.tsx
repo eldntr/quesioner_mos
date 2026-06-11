@@ -49,6 +49,11 @@ export default function QuestionnairePage() {
       .catch(err => console.error('Failed to load audio files', err));
   }, []);
 
+  // Scroll to top whenever the sample changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentIndex]);
+
   const handleNext = () => {
     if (currentMosPA === null || currentMosN === null) return;
 
@@ -63,7 +68,6 @@ export default function QuestionnairePage() {
       setCurrentIndex(prev => prev + 1);
       setCurrentMosPA(null);
       setCurrentMosN(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       submitAllResults(newResults);
     }
@@ -131,7 +135,7 @@ export default function QuestionnairePage() {
         <div style={dividerStyle} />
 
         <RatingRubric
-          title="1. MOS-PA (Akurasi Pelafalan Fonem)"
+          title="1. Akurasi Pelafalan"
           question="Apakah pelafalan huruf-huruf khas Jawa pada audio terdengar akurat?"
           options={MOS_PA_OPTIONS}
           selectedValue={currentMosPA}
@@ -141,7 +145,7 @@ export default function QuestionnairePage() {
         <div style={dividerStyle} />
 
         <RatingRubric
-          title="2. MOS-N (Keluwesan Intonasi/Prosodi)"
+          title="2. Keluwesan Intonasi (Prosodi)"
           question="Apakah alunan nada, ritme, dan cengkok pada kalimat terdengar mengalir alami?"
           options={MOS_N_OPTIONS}
           selectedValue={currentMosN}
