@@ -112,6 +112,15 @@ export default function AdminPage() {
     );
   }
 
+  // Calculate overall stats
+  const allResults = scores.flatMap(s => s.results || []);
+  const overallAvgPA = allResults.length 
+    ? (allResults.reduce((sum, r) => sum + r.mos_pa, 0) / allResults.length).toFixed(2) 
+    : '0.00';
+  const overallAvgN = allResults.length 
+    ? (allResults.reduce((sum, r) => sum + r.mos_n, 0) / allResults.length).toFixed(2) 
+    : '0.00';
+
   return (
     <div className="glass-panel" style={dashboardStyle}>
       <div style={headerStyle}>
@@ -123,6 +132,21 @@ export default function AdminPage() {
           <button onClick={() => setIsResetModalOpen(true)} style={resetButtonStyle}>
             Reset Data
           </button>
+        </div>
+      </div>
+
+      <div style={statsContainerStyle}>
+        <div style={statCardStyle}>
+          <h3 style={statTitleStyle}>Rata-rata Keseluruhan MOS-PA</h3>
+          <p style={statValueStyle} className="text-gradient">{overallAvgPA}</p>
+        </div>
+        <div style={statCardStyle}>
+          <h3 style={statTitleStyle}>Rata-rata Keseluruhan MOS-N</h3>
+          <p style={statValueStyle} className="text-gradient">{overallAvgN}</p>
+        </div>
+        <div style={statCardStyle}>
+          <h3 style={statTitleStyle}>Total Responden</h3>
+          <p style={statValueStyle}>{scores.length}</p>
         </div>
       </div>
 
@@ -154,17 +178,35 @@ export default function AdminPage() {
                 <th style={thStyle}>Nama</th>
                 <th style={thStyle}>Usia</th>
                 <th style={thStyle}>Total Sampel</th>
+                <th style={thStyle}>Rata-rata MOS-PA</th>
+                <th style={thStyle}>Rata-rata MOS-N</th>
               </tr>
             </thead>
             <tbody>
-              {scores.map((score, idx) => (
-                <tr key={idx} style={trStyle}>
-                  <td style={tdStyle}>{new Date(score.timestamp).toLocaleString('id-ID')}</td>
-                  <td style={tdStyle}>{score.identity.name}</td>
-                  <td style={tdStyle}>{score.identity.age}</td>
-                  <td style={tdStyle}>{score.results.length} file</td>
-                </tr>
-              ))}
+              {scores.map((score, idx) => {
+                const resCount = score.results?.length || 0;
+                const avgPA = resCount 
+                  ? (score.results.reduce((sum: number, r: any) => sum + r.mos_pa, 0) / resCount).toFixed(2) 
+                  : '0.00';
+                const avgN = resCount 
+                  ? (score.results.reduce((sum: number, r: any) => sum + r.mos_n, 0) / resCount).toFixed(2) 
+                  : '0.00';
+
+                return (
+                  <tr key={idx} style={trStyle}>
+                    <td style={tdStyle}>{new Date(score.timestamp).toLocaleString('id-ID')}</td>
+                    <td style={tdStyle}>{score.identity?.name || '-'}</td>
+                    <td style={tdStyle}>{score.identity?.age || '-'}</td>
+                    <td style={tdStyle}>{resCount} file</td>
+                    <td style={tdStyle}>
+                      <span style={scoreBadgeStyle(parseFloat(avgPA))}>{avgPA}</span>
+                    </td>
+                    <td style={tdStyle}>
+                      <span style={scoreBadgeStyle(parseFloat(avgN))}>{avgN}</span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -300,4 +342,63 @@ const cancelButtonStyle: React.CSSProperties = {
 const confirmResetButtonStyle: React.CSSProperties = {
   ...buttonStyle,
   background: 'var(--error)',
+};
+
+const statsContainerStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+  gap: '1rem',
+  marginBottom: '2rem',
+};
+
+const statCardStyle: React.CSSProperties = {
+  padding: '1.5rem',
+  borderRadius: 'var(--radius-md)',
+  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  border: '1px solid var(--border-glass)',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '0.5rem',
+};
+
+const statTitleStyle: React.CSSProperties = {
+  fontSize: '0.875rem',
+  color: 'var(--text-secondary)',
+  margin: 0,
+  fontWeight: 500,
+  textAlign: 'center',
+};
+
+const statValueStyle: React.CSSProperties = {
+  fontSize: '2rem',
+  fontWeight: 700,
+  margin: 0,
+};
+
+const scoreBadgeStyle = (score: number): React.CSSProperties => {
+  let color = 'var(--text-primary)';
+  let bg = 'transparent';
+  if (score >= 4) {
+    color = '#10B981'; // green
+    bg = 'rgba(16, 185, 129, 0.1)';
+  } else if (score >= 3) {
+    color = '#F59E0B'; // yellow
+    bg = 'rgba(245, 158, 11, 0.1)';
+  } else if (score > 0) {
+    color = '#EF4444'; // red
+    bg = 'rgba(239, 68, 68, 0.1)';
+  }
+
+  return {
+    display: 'inline-block',
+    padding: '0.25rem 0.75rem',
+    borderRadius: '9999px',
+    backgroundColor: bg,
+    color: color,
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    border: `1px solid ${color}40`,
+  };
 };

@@ -1,0 +1,36 @@
+{
+  "sentences": [
+    {
+      "audio": "kalimat_1.wav",
+      "text": "ojok lali gawa jaket nèk arep metu metu saiki wis musim bedhidhing soale",
+      "desc": "Data val/tes jvm_09724_00112693017.wav"
+    },
+    {
+      "audio": "kalimat_2.wav",
+      "text": "mitsubishi manggoni gedhung sentral senayan siji lan loro",
+      "desc": "Data val/tes jvm_09724_01881980899.wav"
+    },
+    {
+      "audio": "kalimat_3.wav",
+      "text": "jake gyllenhaal ngantosi sedherekipun dugi saking kutha malang",
+      "desc": "Data val/tes jvm_05522_01114554511.wav"
+    },
+    {
+      "audio": "kalimat_4.wav",
+      "text": "sir alex ferguson mek isok tenger tenger ndelok kelakuane bojone",
+      "desc": "Data val/tes jvm_09724_00063084846.wav"
+    },
+    {
+      "audio": "kalimat_5.wav",
+      "text": "perkara kaping telu disaranake adus banyu anget",
+      "desc": "Data val/tes jvm_05219_00221510849.wav"
+    }
+  ],
+  "config": {
+    "ref_audio": "../local/jv/wavs/jvm_05522_00169215191.wav",
+    "config": "Models/jv/LPEP_PPIM/config.yml",
+    "checkpoint": "Models/jv/LPEP_PPIM/epoch_2nd_00049.pth",
+    "lang_id": "1",
+    "out_dir": "yessir"
+  }
+}

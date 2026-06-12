@@ -1,52 +1,10 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-// For Vercel, /tmp is writable but ephemeral. 
-// For local development, we use a file in the project directory.
-const isVercel = process.env.VERCEL === '1';
-const DATA_FILE = isVercel 
-  ? '/tmp/mos_scores.json' 
-  : path.join(process.cwd(), 'mos_scores.json');
-
-// Memory fallback just in case
-let memoryFallback: any[] = [];
-
-function getScores() {
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      const data = fs.readFileSync(DATA_FILE, 'utf-8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('Error reading scores file:', error);
-  }
-  return memoryFallback;
-}
-
-function saveScore(scoreData: any) {
-  const scores = getScores();
-  scores.push({
-    ...scoreData,
-    timestamp: new Date().toISOString()
-  });
-  
-  memoryFallback = scores;
-  
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(scores, null, 2));
-  } catch (error) {
-    console.error('Error writing scores file:', error);
-  }
-}
+import { createClient } from '@/utils/supabase/server';
 
 export async function GET(request: Request) {
   // Simple Admin Password check for GET requests
   const { searchParams } = new URL(request.url);
   const password = searchParams.get('password');
-  
-  // SECURECODER RULE: Do not hardcode secrets. Fallback to 'default-fallback' is bad for production
-  // but since the user explicitly requested a specific password and we are enforcing env var:
   const adminPassword = process.env.ADMIN_PASSWORD;
   
   if (!adminPassword) {
@@ -58,8 +16,26 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const scores = getScores();
-  return NextResponse.json({ scores });
+  const supabase = await createClient();
+  const { data: scores, error } = await supabase
+    .from('scores')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching from Supabase:', error);
+    return NextResponse.json({ error: 'Failed to fetch scores' }, { status: 500 });
+  }
+
+  // Map to match the old format
+  const formattedScores = scores?.map(score => ({
+    id: score.id,
+    identity: score.identity,
+    results: score.results,
+    timestamp: score.created_at
+  })) || [];
+
+  return NextResponse.json({ scores: formattedScores });
 }
 
 export async function POST(request: Request) {
@@ -71,7 +47,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
     }
 
-    saveScore(body);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('scores')
+      .insert([
+        { 
+          identity: body.identity, 
+          results: body.results 
+        }
+      ]);
+
+    if (error) {
+      console.error('Supabase Insert Error:', error);
+      return NextResponse.json({ error: 'Database insert failed' }, { status: 500 });
+    }
     
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -89,17 +78,18 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Clear memory
-  memoryFallback = [];
+  const supabase = await createClient();
   
-  // Clear file
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 2));
-    }
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error clearing scores file:', error);
+  // To delete all rows, we need to match all. A trick is to filter by id is not null.
+  const { error } = await supabase
+    .from('scores')
+    .delete()
+    .not('id', 'is', 'null');
+
+  if (error) {
+    console.error('Error clearing scores from Supabase:', error);
     return NextResponse.json({ error: 'Failed to clear data' }, { status: 500 });
   }
+
+  return NextResponse.json({ success: true });
 }

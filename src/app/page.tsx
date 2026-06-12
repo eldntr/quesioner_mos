@@ -27,9 +27,15 @@ interface EvaluationResult {
   mos_n: number;
 }
 
+interface AudioItem {
+  audio: string;
+  text?: string;
+  desc?: string;
+}
+
 export default function QuestionnairePage() {
   const [identity, setIdentity] = useState<EvaluatorIdentity | null>(null);
-  const [audioFiles, setAudioFiles] = useState<string[]>([]);
+  const [audioFiles, setAudioFiles] = useState<AudioItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<EvaluationResult[]>([]);
   
@@ -60,7 +66,7 @@ export default function QuestionnairePage() {
     const currentFile = audioFiles[currentIndex];
     const newResults = [
       ...results,
-      { fileName: currentFile, mos_pa: currentMosPA, mos_n: currentMosN }
+      { fileName: currentFile.audio, mos_pa: currentMosPA, mos_n: currentMosN }
     ];
     setResults(newResults);
 
@@ -126,11 +132,27 @@ export default function QuestionnairePage() {
       
       <div className="glass-panel" style={cardStyle}>
         <h2 style={titleStyle} className="text-gradient">Evaluasi Audio</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-          File: {audioFiles[currentIndex]}
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+          File: {audioFiles[currentIndex].audio}
         </p>
 
-        <AudioPlayer src={`/audio/${audioFiles[currentIndex]}`} />
+        {audioFiles[currentIndex].text && (
+          <div style={transcriptBoxStyle}>
+            <strong>Transkrip:</strong>
+            <p style={{ marginTop: '0.25rem', fontSize: '1.1rem', lineHeight: 1.5 }}>
+              "{audioFiles[currentIndex].text}"
+            </p>
+          </div>
+        )}
+
+        <AudioPlayer src={`/audio/${audioFiles[currentIndex].audio}`} />
+
+        <div style={infoBoxStyle}>
+          <strong>ℹ️ Info Vokal Miring:</strong>
+          <p style={{ marginTop: '0.25rem', fontSize: '0.9rem' }}>
+            Vokal miring adalah variasi pelafalan huruf vokal dalam bahasa Jawa (seperti <em>è</em>, <em>ò</em>, <em>ì</em>, <em>ù</em>) yang bentuk mulutnya lebih terbuka, misalnya bunyi 'e' pada kata "bebek" atau 'o' pada "kodok". Penutur asli akan melafalkannya secara khas berbeda dengan vokal bahasa Indonesia standar.
+          </p>
+        </div>
 
         <div style={dividerStyle} />
 
@@ -222,4 +244,22 @@ const successIconStyle: React.CSSProperties = {
   fontSize: '4rem',
   color: 'var(--success)',
   marginBottom: '1rem',
+};
+
+const transcriptBoxStyle: React.CSSProperties = {
+  padding: '1rem',
+  backgroundColor: 'rgba(255,255,255,0.03)',
+  borderLeft: '4px solid var(--accent-primary)',
+  borderRadius: '0 8px 8px 0',
+  marginBottom: '1.5rem',
+  color: 'var(--text-primary)',
+};
+
+const infoBoxStyle: React.CSSProperties = {
+  padding: '1rem',
+  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  border: '1px solid rgba(59, 130, 246, 0.3)',
+  borderRadius: '8px',
+  marginTop: '1.5rem',
+  color: 'var(--text-secondary)',
 };
