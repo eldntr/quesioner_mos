@@ -151,6 +151,17 @@ export default function AdminPage() {
     ? (allCmosResults.reduce((sum, r) => sum + r.score, 0) / allCmosResults.length).toFixed(2)
     : '0.00';
 
+  const models = ['GT', 'FT', 'LPEP', 'OMNI'];
+  const averagesPerModel = models.map(model => {
+    const modelResults = allMosResults.filter(r => r.modelType === model);
+    const avgPA = modelResults.length 
+      ? (modelResults.reduce((sum, r) => sum + r.mos_pa, 0) / modelResults.length).toFixed(2) 
+      : '0.00';
+    const avgN = modelResults.length 
+      ? (modelResults.reduce((sum, r) => sum + r.mos_n, 0) / modelResults.length).toFixed(2) 
+      : '0.00';
+    return { model, avgPA, avgN };
+  });
 
 
   return (
@@ -181,6 +192,37 @@ export default function AdminPage() {
           <p style={statValueStyle}>{scores.length}</p>
         </div>
       </div>
+
+      <h3 style={{marginTop: '2.5rem', marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1.25rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.5rem'}}>Rata-rata per Model</h3>
+      <div style={statsContainerStyle}>
+        {averagesPerModel.map(stats => {
+          const modelNames: Record<string, string> = {
+            'GT': 'Ground Truth',
+            'FT': 'Finetuning',
+            'LPEP': 'LPEP PPIM',
+            'OMNI': 'Omnivoice'
+          };
+          return (
+            <div key={stats.model} style={{...statCardStyle, background: 'rgba(255,255,255,0.03)'}}>
+              <h4 style={{fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--accent-primary)', fontWeight: 700}}>
+                {modelNames[stats.model]}
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                <div style={{textAlign: 'center'}}>
+                  <span style={{fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600}}>MOS-PA</span>
+                  <p style={{...statValueStyle, fontSize: '1.75rem', marginTop: '0.5rem'}}>{stats.avgPA}</p>
+                </div>
+                <div style={{ width: '1px', height: '3rem', background: 'var(--border-glass)' }}></div>
+                <div style={{textAlign: 'center'}}>
+                  <span style={{fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600}}>MOS-N</span>
+                  <p style={{...statValueStyle, fontSize: '1.75rem', marginTop: '0.5rem'}}>{stats.avgN}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
 
       {isResetModalOpen && (
         <div style={modalOverlayStyle}>

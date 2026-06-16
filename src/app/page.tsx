@@ -165,49 +165,52 @@ export default function QuestionnairePage() {
     setStage('cmos');
   };
 
-  const handleCmosNext = () => {
+  const handleCmosNext = async () => {
     if (cmosScore === null) {
       alert("Mohon pilih skor perbandingan CMOS.");
       return;
     }
 
     const currentSample = samples[currentIndex];
-    setAllResults(prev => ({
-      ...prev,
-      cmos: [...prev.cmos, {
-        sampleId: currentSample.id,
-        score: cmosScore,
-        comment: cmosComment
-      }]
-    }));
-
+    const cmosResult = {
+      sampleId: currentSample.id,
+      score: cmosScore!,
+      comment: cmosComment
+    };
+    
+    const updatedCmosList = [...allResults.cmos, cmosResult];
+    setAllResults(prev => ({...prev, cmos: updatedCmosList}));
+    
     if (currentIndex < samples.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setStage('mos');
     } else {
-      setStage('done');
-    }
-  };
-  
-  const submitAllResults = async () => {
-    setIsSubmitting(true);
-    try {
-      await fetch('/api/scores', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identity: { ...identity, finalComment },
+        // Auto-submit on the last sample
+      setIsSubmitting(true);
+      try {
+        const payload = {
+          identity: {
+            ...identity,
+            finalComment: ''
+          },
           mos: allResults.mos,
-          cmos: allResults.cmos
-        })
-      });
-      alert('Data berhasil disimpan!');
-      window.location.reload();
-    } catch (err) {
-      console.error('Submission failed', err);
-      alert('Gagal mengirim data. Silakan coba lagi. Pastikan database Supabase aktif.');
-    } finally {
-      setIsSubmitting(false);
+          cmos: updatedCmosList
+        };
+
+        const res = await fetch('/api/scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        if (!res.ok) throw new Error('Submission failed');
+        setStage('done');
+      } catch (e) {
+        alert('Maaf, terjadi kesalahan saat menyimpan data. Pastikan koneksi internet Anda stabil lalu coba klik Selesai lagi.');
+        console.error(e);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -557,8 +560,8 @@ export default function QuestionnairePage() {
           </div>
 
           <div style={actionContainerStyle}>
-            <button onClick={handleCmosNext} disabled={cmosScore === null} style={{...buttonStyle, opacity: cmosScore === null ? 0.5 : 1}}>
-              {currentIndex < samples.length - 1 ? 'Sampel Selanjutnya' : 'Selesai'}
+            <button onClick={handleCmosNext} disabled={cmosScore === null || isSubmitting} style={{...buttonStyle, opacity: (cmosScore === null || isSubmitting) ? 0.5 : 1}}>
+              {isSubmitting ? 'Mengirim Data...' : (currentIndex < samples.length - 1 ? 'Sampel Selanjutnya' : 'Selesai & Kirim')}
             </button>
           </div>
         </div>
@@ -569,24 +572,10 @@ export default function QuestionnairePage() {
   if (stage === 'done') {
     return (
       <div style={containerStyle}>
-        <div className="glass-panel" style={{...cardStyle, textAlign: 'center'}}>
+        <div className="glass-panel" style={{...cardStyle, textAlign: 'center', padding: '3rem 2rem'}}>
           <div style={successIconStyle}>✓</div>
           <h2 style={titleStyle} className="text-gradient">Evaluasi Selesai!</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Terima kasih atas partisipasi Anda.</p>
-          
-          <div style={{marginTop: '2rem', textAlign: 'left'}}>
-            <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: 500}}>Komentar Keseluruhan (Opsional):</label>
-            <textarea 
-              value={finalComment}
-              onChange={(e) => setFinalComment(e.target.value)}
-              style={{width: '100%', padding: '0.75rem', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: 'white', minHeight: '100px'}}
-              placeholder="Kesan, pesan, atau masukan umum terhadap sintesis suara ini..."
-            />
-          </div>
-
-          <button onClick={submitAllResults} disabled={isSubmitting} style={{...buttonStyle, marginTop: '2rem'}}>
-            {isSubmitting ? 'Menyimpan Data...' : 'Kirim Hasil Evaluasi'}
-          </button>
+          <p style={{ color: 'var(--text-secondary)' }}>Data Anda berhasil terkirim. Terima kasih banyak atas waktu dan partisipasi Anda dalam survei ini!</p>
         </div>
       </div>
     );
