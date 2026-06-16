@@ -14,17 +14,6 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body>
-        <nav style={navStyle} className="glass-panel">
-          <div style={navContainerStyle}>
-            <Link href="/" style={logoStyle}>
-              <span className="text-gradient">MOS</span> Evaluator
-            </Link>
-            <div style={navLinksStyle}>
-              <Link href="/" style={linkStyle}>Kuesioner</Link>
-              <Link href="/admin" style={linkStyle}>Admin</Link>
-            </div>
-          </div>
-        </nav>
         <main style={mainStyle}>
           {children}
         </main>
@@ -72,7 +61,8 @@ const linkStyle = {
 };
 
 const mainStyle = {
-  paddingTop: '80px',
+  paddingTop: '2rem',
+  paddingBottom: '2rem',
   minHeight: '100vh',
   display: 'flex',
   flexDirection: 'column' as const,

@@ -5,7 +5,7 @@ import IdentityForm, { EvaluatorIdentity } from '@/components/IdentityForm';
 import RatingRubric from '@/components/RatingRubric';
 
 const MOS_PA_OPTIONS = [
-  { value: 5, label: 'Sangat Akurat (5.0)', desc: 'Pelafalan fonem /dh/, /th/, dan vokal miring sangat tepat seperti penutur asli Jawa. Artikulasi kata sangat jelas tanpa ada suku kata yang hilang atau terseret.' },
+  { value: 5, label: 'Sangat Akurat (5.0)', desc: 'Pelafalan fonem /dh/, /th/, dan vokal (/è/, /ò/, /ì/, /ù/) sangat tepat seperti penutur asli Jawa. Artikulasi kata sangat jelas tanpa ada suku kata yang hilang atau terseret.' },
   { value: 4.5, label: '4.5' },
   { value: 4, label: 'Akurat (4.0)', desc: 'Pelafalan baik dan jelas, hanya ada sedikit bagian kecil yang kurang mantap namun hampir mendekati penutur asli.' },
   { value: 3.5, label: '3.5' },
@@ -56,6 +56,7 @@ export default function QuestionnairePage() {
   // States for MOS
   const [mosOrder, setMosOrder] = useState<{type: string, url: string}[]>([]);
   const [mosScores, setMosScores] = useState<Record<string, {mos_n: number|null, mos_pa: number|null, comment: string}>>({});
+  const [currentMosSlide, setCurrentMosSlide] = useState(0);
   
   // States for CMOS
   const [cmosOrder, setCmosOrder] = useState<{isLpepA: boolean} | null>(null);
@@ -100,6 +101,7 @@ export default function QuestionnairePage() {
         'LPEP': {mos_n: null, mos_pa: null, comment: ''},
         'OMNI': {mos_n: null, mos_pa: null, comment: ''},
       });
+      setCurrentMosSlide(0);
       
       // Randomize CMOS
       setCmosOrder({ isLpepA: Math.random() > 0.5 });
@@ -112,6 +114,26 @@ export default function QuestionnairePage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentIndex, stage]);
+
+  // Blur inputs on scroll/touchmove to hide mobile keyboard
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        document.activeElement instanceof HTMLInputElement || 
+        document.activeElement instanceof HTMLTextAreaElement
+      ) {
+        document.activeElement.blur();
+      }
+    };
+
+    window.addEventListener('touchmove', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchmove', handleScroll);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const handleStart = () => {
     setStage('mos');
@@ -205,9 +227,9 @@ export default function QuestionnairePage() {
   if (stage === 'intro') {
     return (
       <div style={containerStyle}>
-        <div className="glass-panel" style={cardStyle}>
-          <h2 style={titleStyle} className="text-gradient">Selamat Datang di Evaluasi MOS</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.6' }}>
+        <div className="glass-panel" style={{...cardStyle, textAlign: 'center'}}>
+          <h2 style={titleStyle} className="text-gradient">Selamat Datang di Evaluasi Suara Jawa</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: '1.6' }}>
             Kuesioner ini bertujuan untuk mengevaluasi kualitas <strong>pelafalan fonem</strong> dan <strong>keluwesan prosodi/intonasi</strong> Bahasa Jawa dari sampel audio yang telah kami sediakan.
           </p>
 
@@ -218,11 +240,10 @@ export default function QuestionnairePage() {
             padding: '1.25rem',
             marginBottom: '1.5rem'
           }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>📌 Panduan Penting:</h3>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>📌 Panduan Singkat:</h3>
             <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem', lineHeight: '1.5' }}>
-              <li><strong>Kencangkan Volume:</strong> Harap pastikan volume perangkat Anda cukup keras. Sangat disarankan untuk menggunakan <strong>Earphone atau Headphone</strong> agar detail suara terdengar jelas.</li>
-              <li><strong>Format Kuesioner:</strong> Terdapat {samples.length} sampel kalimat. Setiap kalimat memiliki bagian <strong>MOS</strong> (menilai 4 audio secara individu) dan bagian <strong>CMOS</strong> (membandingkan 2 audio).</li>
-              <li><strong>Fokus:</strong> Dengarkan dengan saksama huruf-huruf khas Jawa (seperti /dh/, /th/) serta alunan cengkok dan ritme kalimatnya.</li>
+              <li>Sangat disarankan menggunakan <strong>Earphone atau Headphone</strong> serta <strong>mengkencangkan volume perangkat Anda</strong> jika suara kurang terdengar maksimal.</li>
+              <li>Terdapat {samples.length} sampel kalimat. Pengujian setiap kalimat dibagi menjadi dua tahap: <strong>Tahap Pertama</strong> (penilaian individu) dan <strong>Tahap Kedua</strong> (perbandingan).</li>
             </ul>
           </div>
 
@@ -250,24 +271,7 @@ export default function QuestionnairePage() {
         <div className="glass-panel" style={cardStyle}>
           <h2 style={titleStyle} className="text-gradient">Evaluasi Audio</h2>
 
-          <div style={{
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            borderRadius: '8px',
-            padding: '1rem',
-            marginBottom: '2rem',
-            color: 'var(--text-secondary)'
-          }}>
-            <strong style={{ color: 'var(--text-primary)' }}>ℹ️ Info Vokal Miring & Konsonan Eksplosif:</strong>
-            <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem', fontSize: '0.9rem', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <li>
-                <strong>Vokal Miring:</strong> Variasi pelafalan vokal Jawa (<em>è</em>, <em>ò</em>, <em>ì</em>, <em>ù</em>) yang bentuk mulutnya lebih terbuka, misal 'è' pada "nèk" (seperti 'e' pada bebek, bukan emas).
-              </li>
-              <li>
-                <strong>Konsonan Eksplosif:</strong> Pembedaan tegas pada bunyi bertekanan seperti <em>/dh/</em> dan <em>/th/</em> (misal pada kata "bedhidhing"), berbeda dengan konsonan 'd' dan 't' pada Bahasa Indonesia standar.
-              </li>
-            </ul>
-          </div>
+
 
           {/* Explicit Reference (MUSHRA Standard) */}
           <div style={{
@@ -291,19 +295,30 @@ export default function QuestionnairePage() {
             </p>
           </div>
 
-          {mosOrder.map((opt, idx) => {
-            const label = String.fromCharCode(65 + idx); // A, B, C, D
+          <div style={{marginBottom: '2rem', display: 'flex', justifyContent: 'center'}}>
+            <span style={{background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1rem', borderRadius: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
+              Audio {currentMosSlide + 1} dari 4
+            </span>
+          </div>
+
+          {(() => {
+            const opt = mosOrder[currentMosSlide];
+            if (!opt) return null;
+            const label = String.fromCharCode(65 + currentMosSlide); // A, B, C, D
             const currentScore = mosScores[opt.type];
             return (
-              <div key={opt.type} style={{marginBottom: '3rem', padding: '1rem', border: '1px solid var(--border-glass)', borderRadius: '8px'}}>
-                <p style={{ fontSize: '1.1rem', fontStyle: 'italic', marginBottom: '1rem', color: 'var(--text-primary)', textAlign: 'center', fontWeight: 500 }}>
-                  "{currentSample.text}"
+              <div key={opt.type} style={{marginBottom: '1rem', padding: '1rem', border: '1px solid var(--border-glass)', borderRadius: '8px'}}>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: 'var(--accent-primary)', textAlign: 'center', fontWeight: 700 }}>
+                  Audio {label}
+                </h3>
+                <p style={{ fontSize: '0.95rem', marginBottom: '1rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                  Bandingkan Audio {label} ini dengan audio acuan di atas.
                 </p>
                 <audio controls src={opt.url} style={{width: '100%', marginBottom: '1rem'}} />
                 
                 <RatingRubric
                   title="1. Ketepatan Pengucapan & Ritme"
-                  question="Apakah pelafalan fonem khas Jawa terdengar akurat dan artikulasinya jelas (tidak terseret/terpotong)?"
+                  question="Apakah pelafalan terdengar akurat dan artikulasinya jelas?"
                   options={MOS_PA_OPTIONS}
                   selectedValue={currentScore.mos_pa}
                   onChange={(val) => setMosScores(prev => ({...prev, [opt.type]: {...prev[opt.type], mos_pa: val}}))}
@@ -329,10 +344,49 @@ export default function QuestionnairePage() {
                 </div>
               </div>
             );
-          })}
+          })()}
 
-          <div style={actionContainerStyle}>
-            <button onClick={handleMosNext} disabled={isNextDisabled} style={{...buttonStyle, opacity: isNextDisabled ? 0.5 : 1}}>Lanjut ke Perbandingan Audio</button>
+          <div style={{...actionContainerStyle, justifyContent: currentMosSlide > 0 ? 'space-between' : 'flex-end'}}>
+            {currentMosSlide > 0 && (
+              <button 
+                onClick={() => {
+                  setCurrentMosSlide(prev => prev - 1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }} 
+                style={{...buttonStyle, background: 'var(--surface)'}}
+              >
+                Kembali
+              </button>
+            )}
+            
+            {currentMosSlide < 3 ? (
+              <button 
+                onClick={() => {
+                  setCurrentMosSlide(prev => prev + 1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }} 
+                style={{
+                  ...buttonStyle, 
+                  opacity: (mosScores[mosOrder[currentMosSlide]?.type]?.mos_pa === null || mosScores[mosOrder[currentMosSlide]?.type]?.mos_n === null) ? 0.5 : 1,
+                  cursor: (mosScores[mosOrder[currentMosSlide]?.type]?.mos_pa === null || mosScores[mosOrder[currentMosSlide]?.type]?.mos_n === null) ? 'not-allowed' : 'pointer'
+                }} 
+                disabled={mosOrder[currentMosSlide] ? (mosScores[mosOrder[currentMosSlide].type].mos_pa === null || mosScores[mosOrder[currentMosSlide].type].mos_n === null) : true}
+              >
+                Selanjutnya
+              </button>
+            ) : (
+              <button 
+                onClick={handleMosNext} 
+                style={{
+                  ...buttonStyle, 
+                  opacity: isNextDisabled ? 0.5 : 1,
+                  cursor: isNextDisabled ? 'not-allowed' : 'pointer'
+                }} 
+                disabled={isNextDisabled}
+              >
+                Lanjut ke Perbandingan Audio
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -369,17 +423,19 @@ export default function QuestionnairePage() {
             * Jika suara terdengar kurang jelas, mohon kencangkan volume perangkat (speaker/headphone) Anda.
           </p>
 
+
+
           <div style={{display: 'flex', gap: '2rem', marginBottom: '2rem', flexDirection: 'column'}}>
             <div style={{padding: '1rem', border: '1px solid var(--border-glass)', borderRadius: '8px'}}>
-              <p style={{ fontSize: '1.1rem', fontStyle: 'italic', marginBottom: '0.75rem', color: 'var(--text-primary)', textAlign: 'center', fontWeight: 500 }}>
-                "{currentSample.text}"
-              </p>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', color: 'var(--accent-primary)', textAlign: 'center', fontWeight: 700 }}>
+                Audio Atas
+              </h3>
               <audio controls src={cmosOrder.isLpepA ? currentSample.audioLpep : currentSample.audioFt} style={{width: '100%'}} />
             </div>
             <div style={{padding: '1rem', border: '1px solid var(--border-glass)', borderRadius: '8px'}}>
-              <p style={{ fontSize: '1.1rem', fontStyle: 'italic', marginBottom: '0.75rem', color: 'var(--text-primary)', textAlign: 'center', fontWeight: 500 }}>
-                "{currentSample.text}"
-              </p>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', color: 'var(--accent-secondary)', textAlign: 'center', fontWeight: 700 }}>
+                Audio Bawah
+              </h3>
               <audio controls src={cmosOrder.isLpepA ? currentSample.audioFt : currentSample.audioLpep} style={{width: '100%'}} />
             </div>
           </div>
@@ -388,9 +444,13 @@ export default function QuestionnairePage() {
             <h3 style={{marginBottom: '1rem'}}>Penilaian Perbandingan</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                <span>⬅️ Audio Atas Lebih Baik</span>
-                <span>Audio Bawah Lebih Baik ➡️</span>
+              <p style={{ fontSize: '1.1rem', fontStyle: 'italic', color: 'var(--text-primary)', fontWeight: 500, textAlign: 'center', marginBottom: '0.5rem' }}>
+                "{currentSample.text}"
+              </p>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
+                <span>⬅️ Atas Lebih Baik</span>
+                <span>Bawah Lebih Baik ➡️</span>
               </div>
               
               <div style={{ position: 'relative', width: '100%', padding: '0.5rem 0' }}>
@@ -401,8 +461,10 @@ export default function QuestionnairePage() {
                   step={1}
                   value={currentUiValue === null ? 0 : currentUiValue}
                   onChange={(e) => handleCmosSelect(parseInt(e.target.value))}
+                  onClick={(e) => handleCmosSelect(parseInt(e.currentTarget.value))}
+                  onTouchEnd={(e) => handleCmosSelect(parseInt(e.currentTarget.value))}
                   style={{ width: '100%', cursor: 'pointer', appearance: 'none', height: '8px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', outline: 'none' }}
-                  className="cmos-slider"
+                  className={`cmos-slider ${currentUiValue === null ? 'thumb-hidden' : ''}`}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px', marginTop: '0.5rem' }}>
                   {[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map(tick => (
@@ -431,7 +493,7 @@ export default function QuestionnairePage() {
                     ].find(o => o.val === currentUiValue)?.label}
                   </strong>
                 ) : (
-                  <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>Geser slider untuk membandingkan...</span>
+                  <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>Klik pada area garis slider (rentang) di atas untuk membandingkan...</span>
                 )}
               </div>
             </div>
@@ -459,6 +521,14 @@ export default function QuestionnairePage() {
                 cursor: pointer;
                 box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
                 border: none;
+              }
+              .cmos-slider.thumb-hidden::-webkit-slider-thumb {
+                background: transparent !important;
+                box-shadow: none !important;
+              }
+              .cmos-slider.thumb-hidden::-moz-range-thumb {
+                background: transparent !important;
+                box-shadow: none !important;
               }
             `}} />
           </div>

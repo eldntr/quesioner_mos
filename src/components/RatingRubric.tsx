@@ -38,8 +38,10 @@ export default function RatingRubric({ title, question, options, selectedValue, 
             step={0.5}
             value={selectedValue === null ? minVal : selectedValue}
             onChange={(e) => onChange(parseFloat(e.target.value))}
+            onClick={(e) => onChange(parseFloat(e.currentTarget.value))}
+            onTouchEnd={(e) => onChange(parseFloat(e.currentTarget.value))}
             style={rangeInputStyle}
-            className="custom-slider"
+            className={`custom-slider ${selectedValue === null ? 'thumb-hidden' : ''}`}
           />
           <div style={ticksContainerStyle}>
             {[1, 2, 3, 4, 5].map(tick => (
@@ -67,7 +69,7 @@ export default function RatingRubric({ title, question, options, selectedValue, 
           </>
         ) : (
           <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>
-            Geser slider untuk memberikan nilai 1.0 hingga 5.0...
+            Klik pada area garis slider (rentang) di atas untuk memberikan nilai 1.0 hingga 5.0...
           </span>
         )}
       </div>
@@ -104,6 +106,14 @@ export default function RatingRubric({ title, question, options, selectedValue, 
           cursor: pointer;
           box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
           border: none;
+        }
+        .custom-slider.thumb-hidden::-webkit-slider-thumb {
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+        .custom-slider.thumb-hidden::-moz-range-thumb {
+          background: transparent !important;
+          box-shadow: none !important;
         }
       `}} />
     </div>
