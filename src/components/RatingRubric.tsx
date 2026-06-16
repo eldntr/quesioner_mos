@@ -30,10 +30,6 @@ export default function RatingRubric({ title, question, options, selectedValue, 
       <p style={questionStyle}>{question}</p>
       
       <div style={sliderContainerStyle}>
-        <div style={sliderValueDisplay}>
-          {selectedValue !== null ? selectedValue.toFixed(1) : '-'}
-        </div>
-        
         <div style={{ position: 'relative', width: '100%', padding: '0.5rem 0' }}>
           <input 
             type="range" 

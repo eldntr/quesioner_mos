@@ -269,6 +269,28 @@ export default function QuestionnairePage() {
             </ul>
           </div>
 
+          {/* Explicit Reference (MUSHRA Standard) */}
+          <div style={{
+            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: '8px',
+            padding: '1.5rem',
+            marginBottom: '3rem',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ color: 'var(--accent-secondary)', marginBottom: '0.5rem' }}>Audio Acuan (Rekaman Asli)</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+              Dengarkan audio di bawah ini sebagai standar kualitas tertinggi (Ground Truth) sebelum Anda menilai sampel lainnya.
+            </p>
+            <p style={{ fontSize: '1.1rem', fontStyle: 'italic', marginBottom: '1rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+              "{currentSample.text}"
+            </p>
+            <audio controls src={currentSample.audioGt} style={{width: '100%'}} />
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.75rem', fontStyle: 'italic' }}>
+              * Jika suara terdengar kurang jelas, mohon kencangkan volume perangkat (speaker/headphone) Anda.
+            </p>
+          </div>
+
           {mosOrder.map((opt, idx) => {
             const label = String.fromCharCode(65 + idx); // A, B, C, D
             const currentScore = mosScores[opt.type];
@@ -342,7 +364,10 @@ export default function QuestionnairePage() {
         
         <div className="glass-panel" style={cardStyle}>
           <h2 style={titleStyle} className="text-gradient">Evaluasi Perbandingan</h2>
-          <p style={{marginBottom: '1.5rem'}}>Bandingkan kualitas kedua audio berikut:</p>
+          <p style={{marginBottom: '0.5rem'}}>Bandingkan kualitas kedua audio berikut:</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem', fontStyle: 'italic' }}>
+            * Jika suara terdengar kurang jelas, mohon kencangkan volume perangkat (speaker/headphone) Anda.
+          </p>
 
           <div style={{display: 'flex', gap: '2rem', marginBottom: '2rem', flexDirection: 'column'}}>
             <div style={{padding: '1rem', border: '1px solid var(--border-glass)', borderRadius: '8px'}}>
@@ -371,8 +396,8 @@ export default function QuestionnairePage() {
               <div style={{ position: 'relative', width: '100%', padding: '0.5rem 0' }}>
                 <input 
                   type="range" 
-                  min={-3} 
-                  max={3} 
+                  min={-6} 
+                  max={6} 
                   step={1}
                   value={currentUiValue === null ? 0 : currentUiValue}
                   onChange={(e) => handleCmosSelect(parseInt(e.target.value))}
@@ -380,8 +405,8 @@ export default function QuestionnairePage() {
                   className="cmos-slider"
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px', marginTop: '0.5rem' }}>
-                  {[-3, -2, -1, 0, 1, 2, 3].map(tick => (
-                    <span key={tick} style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600 }}>{tick > 0 ? `+${tick}` : tick}</span>
+                  {[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map(tick => (
+                    <span key={tick} style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 600 }}>{tick > 0 ? `+${tick}` : tick}</span>
                   ))}
                 </div>
               </div>
@@ -390,13 +415,19 @@ export default function QuestionnairePage() {
                 {currentUiValue !== null ? (
                   <strong style={{ color: 'var(--accent-primary)', fontSize: '1rem' }}>
                     {[
-                      {val: -3, label: 'Audio Atas jauh lebih baik'},
-                      {val: -2, label: 'Audio Atas lebih baik'},
-                      {val: -1, label: 'Audio Atas sedikit lebih baik'},
-                      {val: 0, label: 'Keduanya sama kualitasnya'},
-                      {val: 1, label: 'Audio Bawah sedikit lebih baik'},
-                      {val: 2, label: 'Audio Bawah lebih baik'},
-                      {val: 3, label: 'Audio Bawah jauh lebih baik'},
+                      {val: -6, label: 'Audio Atas sangat jauh lebih baik (-6)'},
+                      {val: -5, label: 'Audio Atas jauh lebih baik (-5)'},
+                      {val: -4, label: 'Audio Atas lebih baik (-4)'},
+                      {val: -3, label: 'Audio Atas sedikit lebih baik (-3)'},
+                      {val: -2, label: 'Audio Atas sedikit lebih baik (-2)'},
+                      {val: -1, label: 'Audio Atas sangat sedikit lebih baik (-1)'},
+                      {val: 0, label: 'Keduanya sama kualitasnya (0)'},
+                      {val: 1, label: 'Audio Bawah sangat sedikit lebih baik (+1)'},
+                      {val: 2, label: 'Audio Bawah sedikit lebih baik (+2)'},
+                      {val: 3, label: 'Audio Bawah sedikit lebih baik (+3)'},
+                      {val: 4, label: 'Audio Bawah lebih baik (+4)'},
+                      {val: 5, label: 'Audio Bawah jauh lebih baik (+5)'},
+                      {val: 6, label: 'Audio Bawah sangat jauh lebih baik (+6)'},
                     ].find(o => o.val === currentUiValue)?.label}
                   </strong>
                 ) : (
