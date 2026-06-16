@@ -1,67 +1,88 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { PrismaClient } from '@/generated/prisma';
+
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+
+// Use a global variable to prevent creating multiple PrismaClient instances in dev
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+
+const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export const dynamic = 'force-dynamic';
-
-export async function GET(request: Request) {
-  // Simple Admin Password check for GET requests
-  const { searchParams } = new URL(request.url);
-  const password = searchParams.get('password');
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  
-  if (!adminPassword) {
-    console.error('ADMIN_PASSWORD environment variable is not set!');
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-  }
-
-  if (password !== adminPassword) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const supabase = await createClient();
-  const { data: scores, error } = await supabase
-    .from('scores')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching from Supabase:', error);
-    return NextResponse.json({ error: 'Failed to fetch scores' }, { status: 500 });
-  }
-
-  // Map to match the old format
-  const formattedScores = scores?.map(score => ({
-    id: score.id,
-    identity: score.identity,
-    results: score.results,
-    timestamp: score.created_at
-  })) || [];
-
-  return NextResponse.json({ scores: formattedScores });
-}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     
     // Basic validation
-    if (!body.identity || !body.results) {
+    if (!body.identity || !body.mos || !body.cmos) {
       return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from('scores')
-      .insert([
-        { 
-          identity: body.identity, 
-          results: body.results 
-        }
-      ]);
+    // Insert evaluator
+    const evaluator = await prisma.evaluator.create({
+      data: {
+        name: body.identity.name,
+        age: body.identity.age,
+        gender: body.identity.gender,
+        javaneseFluency: body.identity.javaneseFluency,
+        region: body.identity.region,
+        finalComment: body.identity.finalComment
+      }
+    });
 
-    if (error) {
-      console.error('Supabase Insert Error:', error);
-      return NextResponse.json({ error: 'Database insert failed' }, { status: 500 });
+    // We need to ensure AudioSample exists, but for simplicity in this evaluation we can upsert it or just create it if it doesn't exist
+    // Alternatively, since samples are read from disk dynamically, we can just upsert the sample based on ID.
+    const sampleIds = new Set([
+      ...body.mos.map((m: any) => m.sampleId),
+      ...body.cmos.map((c: any) => c.sampleId)
+    ]);
+
+    for (const sId of Array.from(sampleIds)) {
+      // In a real app we'd get the actual targetText from the backend, but since we just have ID, we'll store ID in both
+      await prisma.audioSample.upsert({
+        where: { id: sId as string },
+        update: {},
+        create: {
+          id: sId as string,
+          targetText: 'Transcript loaded dynamically',
+          audioGt: '',
+          audioFt: '',
+          audioLpep: '',
+          audioOmnivoice: ''
+        }
+      });
+    }
+
+    // Insert MOS responses
+    if (body.mos.length > 0) {
+      await prisma.mosResponse.createMany({
+        data: body.mos.map((m: any) => ({
+          evaluatorId: evaluator.id,
+          sampleId: m.sampleId,
+          modelType: m.modelType,
+          mos_n_score: m.mos_n_score,
+          mos_pa_score: m.mos_pa_score,
+          comment: m.comment
+        }))
+      });
+    }
+
+    // Insert CMOS responses
+    if (body.cmos.length > 0) {
+      await prisma.cmosResponse.createMany({
+        data: body.cmos.map((c: any) => ({
+          evaluatorId: evaluator.id,
+          sampleId: c.sampleId,
+          score: c.score,
+          comment: c.comment
+        }))
+      });
     }
     
     return NextResponse.json({ success: true });
@@ -71,27 +92,74 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const password = searchParams.get('password');
-  const adminPassword = process.env.ADMIN_PASSWORD;
   
-  if (!adminPassword || password !== adminPassword) {
+  // Simple auth check
+  if (password !== process.env.ADMIN_PASSWORD) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const supabase = await createClient();
-  
-  // To delete all rows, we need to match all. A trick is to filter by id is not null.
-  const { error } = await supabase
-    .from('scores')
-    .delete()
-    .not('id', 'is', 'null');
+  try {
+    const evaluators = await prisma.evaluator.findMany({
+      include: {
+        mosResponses: {
+          include: { sample: true }
+        },
+        cmosResponses: {
+          include: { sample: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
-  if (error) {
-    console.error('Error clearing scores from Supabase:', error);
-    return NextResponse.json({ error: 'Failed to clear data' }, { status: 500 });
+    const scores = evaluators.map(ev => ({
+      timestamp: ev.createdAt,
+      identity: {
+        name: ev.name,
+        age: ev.age,
+        gender: ev.gender,
+        javaneseFluency: ev.javaneseFluency,
+        region: ev.region,
+        finalComment: ev.finalComment
+      },
+      mosResults: ev.mosResponses.map(r => ({
+        sampleId: r.sampleId,
+        modelType: r.modelType,
+        mos_pa: r.mos_pa_score,
+        mos_n: r.mos_n_score,
+        comment: r.comment
+      })),
+      cmosResults: ev.cmosResponses.map(c => ({
+        sampleId: c.sampleId,
+        score: c.score,
+        comment: c.comment
+      }))
+    }));
+
+    return NextResponse.json({ scores });
+  } catch (error) {
+    console.error('Error fetching scores:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const password = searchParams.get('password');
+  
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  return NextResponse.json({ success: true });
+  try {
+    await prisma.mosResponse.deleteMany({});
+    await prisma.cmosResponse.deleteMany({});
+    await prisma.evaluator.deleteMany({});
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting scores:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

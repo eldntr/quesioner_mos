@@ -4,10 +4,70 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
+  engineType = "library"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model Evaluator {
+  id              String         @id @default(uuid())
+  name            String?
+  age             Int?
+  gender          String?
+  javaneseFluency String?        // Tingkat kefasihan Bahasa Jawa
+  region          String?        // Asal daerah di Jawa
+  finalComment    String?        // Komentar opsional di bagian akhir kuesioner
+  createdAt       DateTime       @default(now())
+  
+  mosResponses    MosResponse[]
+  cmosResponses   CmosResponse[]
+}
+
+model AudioSample {
+  id              String         @id @default(uuid())
+  targetText      String         // Teks Target Bahasa Jawa
+  
+  // URL/Path ke file audio yang dihasilkan
+  audioGt         String         // Ground Truth
+  audioFt         String         // Baseline ft
+  audioLpep       String         // Usulan LPEP_PPIM
+  audioOmnivoice  String         // Pembanding OmniVoice
+
+  mosResponses    MosResponse[]
+  cmosResponses   CmosResponse[]
+}
+
+model MosResponse {
+  id              String         @id @default(uuid())
+  evaluatorId     String
+  sampleId        String
+  modelType       String         // Menyimpan label model asli (GT, FT, LPEP, OMNI) meski di UI disembunyikan
+  
+  mos_n_score     Float          // Nilai 1.0 - 5.0
+  mos_pa_score    Float          // Nilai 1.0 - 5.0
+  comment         String?        // Komentar opsional untuk tes audio spesifik
+  
+  evaluator       Evaluator      @relation(fields: [evaluatorId], references: [id])
+  sample          AudioSample    @relation(fields: [sampleId], references: [id])
+
+  createdAt       DateTime       @default(now())
+}
+
+model CmosResponse {
+  id              String         @id @default(uuid())
+  evaluatorId     String
+  sampleId        String
+  
+  // Skor perbandingan (-3 s.d 3)
+  score           Int            
+  comment         String?        // Komentar opsional untuk perbandingan ini
+  
+  evaluator       Evaluator      @relation(fields: [evaluatorId], references: [id])
+  sample          AudioSample    @relation(fields: [sampleId], references: [id])
+
+  createdAt       DateTime       @default(now())
 }

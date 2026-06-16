@@ -5,7 +5,7 @@ import React from 'react';
 interface RubricOption {
   value: number;
   label: string;
-  desc: string;
+  desc?: string;
 }
 
 interface Props {
@@ -17,35 +17,99 @@ interface Props {
 }
 
 export default function RatingRubric({ title, question, options, selectedValue, onChange }: Props) {
+  const selectedOption = options.find(o => o.value === selectedValue);
+  
+  // Sort options just in case
+  const sortedOptions = [...options].sort((a, b) => a.value - b.value);
+  const minVal = sortedOptions[0]?.value || 1;
+  const maxVal = sortedOptions[sortedOptions.length - 1]?.value || 5;
+
   return (
     <div style={containerStyle}>
       <h3 style={titleStyle} className="text-gradient">{title}</h3>
       <p style={questionStyle}>{question}</p>
       
-      <div style={optionsContainerStyle}>
-        {options.map((opt) => {
-          const isSelected = selectedValue === opt.value;
-          return (
-            <button
-              key={opt.value}
-              onClick={() => onChange(opt.value)}
-              style={{
-                ...optionButtonStyle,
-                ...(isSelected ? optionSelectedStyle : {}),
-              }}
-              className="glass-panel"
-            >
-              <div style={scoreBadgeStyle(isSelected)}>{opt.value}</div>
-              <div style={textContainerStyle}>
-                <div style={{...labelStyle, color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)'}}>
-                  {opt.label}
-                </div>
-                <div style={descStyle}>{opt.desc}</div>
-              </div>
-            </button>
-          );
-        })}
+      <div style={sliderContainerStyle}>
+        <div style={sliderValueDisplay}>
+          {selectedValue !== null ? selectedValue.toFixed(1) : '-'}
+        </div>
+        
+        <div style={{ position: 'relative', width: '100%', padding: '0.5rem 0' }}>
+          <input 
+            type="range" 
+            min={minVal} 
+            max={maxVal} 
+            step={0.5}
+            value={selectedValue === null ? minVal : selectedValue}
+            onChange={(e) => onChange(parseFloat(e.target.value))}
+            style={rangeInputStyle}
+            className="custom-slider"
+          />
+          <div style={ticksContainerStyle}>
+            {[1, 2, 3, 4, 5].map(tick => (
+              <span key={tick} style={tickStyle}>{tick}</span>
+            ))}
+          </div>
+        </div>
       </div>
+
+      <div className="glass-panel" style={descBoxStyle}>
+        {selectedOption ? (
+          <>
+            <strong style={{ color: 'var(--accent-primary)', display: 'block', marginBottom: '0.25rem' }}>
+              {selectedOption.label}
+            </strong>
+            {selectedOption.desc ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.4 }}>
+                {selectedOption.desc}
+              </p>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                (Nilai pertengahan)
+              </p>
+            )}
+          </>
+        ) : (
+          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>
+            Geser slider untuk memberikan nilai 1.0 hingga 5.0...
+          </span>
+        )}
+      </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-slider {
+          -webkit-appearance: none;
+          width: 100%;
+          height: 8px;
+          border-radius: 4px;
+          background: rgba(255, 255, 255, 0.1);
+          outline: none;
+          transition: background 0.2s;
+        }
+        .custom-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: var(--accent-primary);
+          cursor: pointer;
+          box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+          transition: transform 0.1s;
+        }
+        .custom-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.2);
+        }
+        .custom-slider::-moz-range-thumb {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: var(--accent-primary);
+          cursor: pointer;
+          box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+          border: none;
+        }
+      `}} />
     </div>
   );
 }
@@ -61,60 +125,51 @@ const titleStyle: React.CSSProperties = {
 
 const questionStyle: React.CSSProperties = {
   color: 'var(--text-primary)',
-  marginBottom: '1rem',
+  marginBottom: '1.25rem',
   fontWeight: 500,
 };
 
-const optionsContainerStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.75rem',
-};
-
-const optionButtonStyle: React.CSSProperties = {
+const sliderContainerStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  padding: '1rem',
-  gap: '1.25rem',
-  cursor: 'pointer',
-  textAlign: 'left',
-  transition: 'all var(--transition-fast)',
+  gap: '1.5rem',
+  marginBottom: '1rem',
+  padding: '0 1rem',
 };
 
-const optionSelectedStyle: React.CSSProperties = {
-  background: 'rgba(99, 102, 241, 0.15)',
-  borderColor: 'var(--accent-primary)',
-  boxShadow: '0 0 0 1px var(--accent-primary)',
-};
-
-const scoreBadgeStyle = (isSelected: boolean): React.CSSProperties => ({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '36px',
-  height: '36px',
-  borderRadius: 'var(--radius-full)',
-  background: isSelected 
-    ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' 
-    : 'rgba(255, 255, 255, 0.1)',
-  color: isSelected ? '#fff' : 'var(--text-secondary)',
+const sliderValueDisplay: React.CSSProperties = {
+  fontSize: '1.5rem',
   fontWeight: 700,
-  flexShrink: 0,
-});
+  color: 'var(--accent-primary)',
+  minWidth: '3rem',
+  textAlign: 'center',
+};
 
-const textContainerStyle: React.CSSProperties = {
+const rangeInputStyle: React.CSSProperties = {
+  width: '100%',
+  margin: '0',
+  cursor: 'pointer',
+};
+
+const ticksContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  padding: '0 10px',
+  marginTop: '0.5rem',
+};
+
+const tickStyle: React.CSSProperties = {
+  color: 'var(--text-muted)',
+  fontSize: '0.8rem',
+  fontWeight: 600,
+};
+
+const descBoxStyle: React.CSSProperties = {
+  padding: '1rem',
+  minHeight: '80px',
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
-};
-
-const labelStyle: React.CSSProperties = {
-  fontWeight: 600,
-  fontSize: '1rem',
-};
-
-const descStyle: React.CSSProperties = {
-  fontSize: '0.85rem',
-  color: 'var(--text-muted)',
-  lineHeight: 1.4,
+  justifyContent: 'center',
+  textAlign: 'center',
+  backgroundColor: 'rgba(255, 255, 255, 0.02)'
 };

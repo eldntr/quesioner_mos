@@ -4,7 +4,10 @@ import React, { useState } from 'react';
 
 export interface EvaluatorIdentity {
   name: string;
-  age: string;
+  age: number;
+  gender: string;
+  javaneseFluency: string;
+  region: string;
 }
 
 interface Props {
@@ -14,44 +17,24 @@ interface Props {
 export default function IdentityForm({ onSubmit }: Props) {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+  const [javaneseFluency, setJavaneseFluency] = useState('');
+  const [region, setRegion] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name && age) {
-      onSubmit({ name, age });
+    if (name && age && gender && javaneseFluency && region) {
+      onSubmit({ name, age: parseInt(age, 10), gender, javaneseFluency, region });
     }
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '600px', width: '100%', margin: '2rem auto' }}>
       
-      {/* Pengumuman / Instruksi */}
-      <div className="glass-panel" style={{ padding: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }} className="text-gradient">
-          Selamat Datang di Evaluasi MOS
-        </h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.6' }}>
-          Kuesioner ini bertujuan untuk mengevaluasi kualitas <strong>pelafalan fonem</strong> dan <strong>keluwesan prosodi/intonasi</strong> Bahasa Jawa dari sampel audio yang telah kami sediakan.
-        </p>
-
-        <div style={infoBoxStyle}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--text-primary)' }}>📌 Panduan Penting:</h3>
-          <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem', lineHeight: '1.5' }}>
-            <li><strong>Kencangkan Volume:</strong> Harap pastikan volume perangkat Anda cukup keras. Sangat disarankan untuk menggunakan <strong>Earphone atau Headphone</strong> agar detail suara terdengar jelas.</li>
-            <li><strong>Format Kuesioner:</strong> Terdapat <strong>5 sampel audio</strong>. Setiap sampel memiliki <strong>2 pertanyaan</strong> (mengenai akurasi pelafalan dan keluwesan nada/intonasi).</li>
-            <li><strong>Fokus:</strong> Dengarkan dengan saksama huruf-huruf khas Jawa (seperti /dh/, /th/) serta alunan cengkok dan ritme kalimatnya.</li>
-          </ul>
-        </div>
-
-        <p style={{ marginTop: '1.5rem', color: 'var(--accent-primary)', fontWeight: 600, textAlign: 'center' }}>
-          Terima kasih banyak atas waktu dan partisipasi Anda!
-        </p>
-      </div>
-
       {/* Form Identitas */}
       <div className="glass-panel" style={{ padding: '2rem' }}>
         <h2 style={titleStyle}>Data Evaluator</h2>
-        <p style={subtitleStyle}>Silakan isi data diri Anda untuk melanjutkan.</p>
+        <p style={subtitleStyle}>Silakan isi data demografi Anda untuk melanjutkan.</p>
         
         <form onSubmit={handleSubmit} style={formStyle}>
         <div style={inputGroupStyle}>
@@ -62,7 +45,7 @@ export default function IdentityForm({ onSubmit }: Props) {
             onChange={e => setName(e.target.value)}
             required
             style={inputStyle}
-            placeholder="Masukkan nama Anda"
+            placeholder="Masukkan nama atau inisial"
           />
         </div>
         
@@ -80,7 +63,38 @@ export default function IdentityForm({ onSubmit }: Props) {
           />
         </div>
 
-        <button type="submit" style={buttonStyle}>Mulai Kuesioner</button>
+        <div style={inputGroupStyle}>
+          <label style={labelStyle}>Jenis Kelamin</label>
+          <select required value={gender} onChange={e => setGender(e.target.value)} style={inputStyle}>
+            <option value="" disabled>Pilih Jenis Kelamin</option>
+            <option value="Laki-laki">Laki-laki</option>
+            <option value="Perempuan">Perempuan</option>
+          </select>
+        </div>
+
+        <div style={inputGroupStyle}>
+          <label style={labelStyle}>Tingkat Kefasihan Bahasa Jawa</label>
+          <select required value={javaneseFluency} onChange={e => setJavaneseFluency(e.target.value)} style={inputStyle}>
+            <option value="" disabled>Pilih Kefasihan</option>
+            <option value="Sangat Fasih (Native)">Sangat Fasih (Native / Bahasa Ibu)</option>
+            <option value="Fasih">Fasih (Sering menggunakan sehari-hari)</option>
+            <option value="Cukup Fasih">Cukup Fasih (Paham tapi jarang berbicara)</option>
+          </select>
+        </div>
+
+        <div style={inputGroupStyle}>
+          <label style={labelStyle}>Asal Daerah di Jawa</label>
+          <input 
+            type="text" 
+            value={region}
+            onChange={e => setRegion(e.target.value)}
+            required
+            style={inputStyle}
+            placeholder="Contoh: Solo, Semarang, Surabaya..."
+          />
+        </div>
+
+        <button type="submit" style={buttonStyle}>Lanjut ke Kuesioner</button>
       </form>
       </div>
     </div>

@@ -4,28 +4,53 @@ import path from 'path';
 
 export async function GET() {
   try {
-    const jsonPath = path.join(process.cwd(), 'public', 'audio', 'sentence.json');
-    
-    if (fs.existsSync(jsonPath)) {
-      const data = fs.readFileSync(jsonPath, 'utf8');
-      const jsonData = JSON.parse(data);
-      return NextResponse.json({ files: jsonData.sentences || [] });
-    }
-
-    // Fallback if sentence.json is not found
-    const audioDir = path.join(process.cwd(), 'public', 'audio');
-    if (!fs.existsSync(audioDir)) {
+    const samplesDir = path.join(process.cwd(), 'public', 'random_samples');
+    if (!fs.existsSync(samplesDir)) {
       return NextResponse.json({ files: [] });
     }
 
-    const files = fs.readdirSync(audioDir);
-    const audioFiles = files
-      .filter(file => file.endsWith('.mp3') || file.endsWith('.wav') || file.endsWith('.ogg'))
-      .map(file => ({ audio: file, text: '', desc: '' }));
+    const directories = fs.readdirSync(samplesDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
+
+    const samples = directories.map(dirName => {
+      const dirPath = path.join(samplesDir, dirName);
       
-    return NextResponse.json({ files: audioFiles });
+      let transcript = '';
+      const transcriptPath = path.join(dirPath, 'transcript.txt');
+      if (fs.existsSync(transcriptPath)) {
+        transcript = fs.readFileSync(transcriptPath, 'utf8').trim();
+        // Remove "Audio Name: ... Transcript: " if it exists
+        const match = transcript.match(/Transcript:\s*(.*)/i);
+        if (match && match[1]) {
+          transcript = match[1].trim();
+        }
+      }
+
+      // Collect audio files
+      const filesInDir = fs.readdirSync(dirPath);
+      let audioGt = '', audioFt = '', audioLpep = '', audioOmnivoice = '';
+      
+      filesInDir.forEach(f => {
+        if (f.startsWith('GT_')) audioGt = `/random_samples/${dirName}/${f}`;
+        else if (f.startsWith('ft_')) audioFt = `/random_samples/${dirName}/${f}`;
+        else if (f.startsWith('LPEP_PPIM_')) audioLpep = `/random_samples/${dirName}/${f}`;
+        else if (f.startsWith('omnivoice_')) audioOmnivoice = `/random_samples/${dirName}/${f}`;
+      });
+
+      return {
+        id: dirName,
+        text: transcript,
+        audioGt,
+        audioFt,
+        audioLpep,
+        audioOmnivoice
+      };
+    });
+
+    return NextResponse.json({ samples });
   } catch (error) {
-    console.error('Error reading audio directory/json:', error);
-    return NextResponse.json({ error: 'Failed to read audio directory' }, { status: 500 });
+    console.error('Error reading samples directory:', error);
+    return NextResponse.json({ error: 'Failed to read samples directory' }, { status: 500 });
   }
 }
