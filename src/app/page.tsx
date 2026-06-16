@@ -307,7 +307,7 @@ export default function QuestionnairePage() {
             const label = String.fromCharCode(65 + currentMosSlide); // A, B, C, D
             const currentScore = mosScores[opt.type];
             return (
-              <div key={opt.type} style={{marginBottom: '1rem', padding: '1rem', border: '1px solid var(--border-glass)', borderRadius: '8px'}}>
+              <div id="active-audio" key={opt.type} style={{marginBottom: '1rem', padding: '1rem', border: '1px solid var(--border-glass)', borderRadius: '8px'}}>
                 <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: 'var(--accent-primary)', textAlign: 'center', fontWeight: 700 }}>
                   Audio {label}
                 </h3>
@@ -351,7 +351,13 @@ export default function QuestionnairePage() {
               <button 
                 onClick={() => {
                   setCurrentMosSlide(prev => prev - 1);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  setTimeout(() => {
+                    const el = document.getElementById('active-audio');
+                    if (el) {
+                      const y = el.getBoundingClientRect().top + window.scrollY - 20;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }, 50);
                 }} 
                 style={{...buttonStyle, background: 'var(--surface)'}}
               >
@@ -363,7 +369,13 @@ export default function QuestionnairePage() {
               <button 
                 onClick={() => {
                   setCurrentMosSlide(prev => prev + 1);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  setTimeout(() => {
+                    const el = document.getElementById('active-audio');
+                    if (el) {
+                      const y = el.getBoundingClientRect().top + window.scrollY - 20;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }, 50);
                 }} 
                 style={{
                   ...buttonStyle, 
@@ -372,7 +384,7 @@ export default function QuestionnairePage() {
                 }} 
                 disabled={mosOrder[currentMosSlide] ? (mosScores[mosOrder[currentMosSlide].type].mos_pa === null || mosScores[mosOrder[currentMosSlide].type].mos_n === null) : true}
               >
-                Selanjutnya
+                Selanjutnya (Ke Audio {String.fromCharCode(65 + currentMosSlide + 1)})
               </button>
             ) : (
               <button 
