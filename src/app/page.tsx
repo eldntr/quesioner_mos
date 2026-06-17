@@ -115,25 +115,6 @@ export default function QuestionnairePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentIndex, stage]);
 
-  // Blur inputs on scroll/touchmove to hide mobile keyboard
-  useEffect(() => {
-    const handleScroll = () => {
-      if (
-        document.activeElement instanceof HTMLInputElement || 
-        document.activeElement instanceof HTMLTextAreaElement
-      ) {
-        document.activeElement.blur();
-      }
-    };
-
-    window.addEventListener('touchmove', handleScroll, { passive: true });
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('touchmove', handleScroll);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
 
   const handleStart = () => {
     setStage('mos');
