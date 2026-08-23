@@ -29,22 +29,26 @@ export async function GET() {
 
       // Collect audio files
       const filesInDir = fs.readdirSync(dirPath);
-      let audioGt = '', audioFt = '', audioLpep = '', audioOmnivoice = '';
+      let audioGt = '', audioLpep = '', audioFt = '', audioMms = '', audioOmnivoice = '', audioId = '';
       
       filesInDir.forEach(f => {
-        if (f.startsWith('GT_')) audioGt = `/random_samples/${dirName}/${f}`;
-        else if (f.startsWith('ft_')) audioFt = `/random_samples/${dirName}/${f}`;
+        if (f.startsWith('gt_')) audioGt = `/random_samples/${dirName}/${f}`;
         else if (f.startsWith('LPEP_PPIM_')) audioLpep = `/random_samples/${dirName}/${f}`;
+        else if (f.startsWith('ft_')) audioFt = `/random_samples/${dirName}/${f}`;
+        else if (f.startsWith('mms_')) audioMms = `/random_samples/${dirName}/${f}`;
         else if (f.startsWith('omnivoice_')) audioOmnivoice = `/random_samples/${dirName}/${f}`;
+        else if (f.startsWith('id_')) audioId = `/random_samples/${dirName}/${f}`;
       });
 
       return {
         id: dirName,
         text: transcript,
         audioGt,
-        audioFt,
         audioLpep,
-        audioOmnivoice
+        audioFt,
+        audioMms,
+        audioOmnivoice,
+        audioId
       };
     });
 

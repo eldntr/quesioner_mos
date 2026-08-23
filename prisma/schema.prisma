@@ -24,7 +24,6 @@ model Evaluator {
   createdAt       DateTime       @default(now())
   
   mosResponses    MosResponse[]
-  cmosResponses   CmosResponse[]
 }
 
 model AudioSample {
@@ -33,12 +32,13 @@ model AudioSample {
   
   // URL/Path ke file audio yang dihasilkan
   audioGt         String         // Ground Truth
-  audioFt         String         // Baseline ft
   audioLpep       String         // Usulan LPEP_PPIM
+  audioFt         String         // Baseline ft
+  audioMms        String         // mms
   audioOmnivoice  String         // Pembanding OmniVoice
+  audioId         String         // id (StyleTTS2)
 
   mosResponses    MosResponse[]
-  cmosResponses   CmosResponse[]
 }
 
 model MosResponse {
@@ -57,17 +57,3 @@ model MosResponse {
   createdAt       DateTime       @default(now())
 }
 
-model CmosResponse {
-  id              String         @id @default(uuid())
-  evaluatorId     String
-  sampleId        String
-  
-  // Skor perbandingan (-3 s.d 3)
-  score           Int            
-  comment         String?        // Komentar opsional untuk perbandingan ini
-  
-  evaluator       Evaluator      @relation(fields: [evaluatorId], references: [id])
-  sample          AudioSample    @relation(fields: [sampleId], references: [id])
-
-  createdAt       DateTime       @default(now())
-}

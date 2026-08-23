@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     // Basic validation
-    if (!body.identity || !body.mos || !body.cmos) {
+    if (!body.identity || !body.mos) {
       return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
     }
 
@@ -39,8 +39,7 @@ export async function POST(request: Request) {
     // We need to ensure AudioSample exists, but for simplicity in this evaluation we can upsert it or just create it if it doesn't exist
     // Alternatively, since samples are read from disk dynamically, we can just upsert the sample based on ID.
     const sampleIds = new Set([
-      ...body.mos.map((m: any) => m.sampleId),
-      ...body.cmos.map((c: any) => c.sampleId)
+      ...body.mos.map((m: any) => m.sampleId)
     ]);
 
     for (const sId of Array.from(sampleIds)) {
@@ -52,9 +51,11 @@ export async function POST(request: Request) {
           id: sId as string,
           targetText: 'Transcript loaded dynamically',
           audioGt: '',
-          audioFt: '',
           audioLpep: '',
-          audioOmnivoice: ''
+          audioFt: '',
+          audioMms: '',
+          audioOmnivoice: '',
+          audioId: ''
         }
       });
     }
@@ -73,17 +74,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // Insert CMOS responses
-    if (body.cmos.length > 0) {
-      await prisma.cmosResponse.createMany({
-        data: body.cmos.map((c: any) => ({
-          evaluatorId: evaluator.id,
-          sampleId: c.sampleId,
-          score: c.score,
-          comment: c.comment
-        }))
-      });
-    }
+
     
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -106,9 +97,6 @@ export async function GET(request: Request) {
       include: {
         mosResponses: {
           include: { sample: true }
-        },
-        cmosResponses: {
-          include: { sample: true }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -130,11 +118,6 @@ export async function GET(request: Request) {
         mos_pa: r.mos_pa_score,
         mos_n: r.mos_n_score,
         comment: r.comment
-      })),
-      cmosResults: ev.cmosResponses.map(c => ({
-        sampleId: c.sampleId,
-        score: c.score,
-        comment: c.comment
       }))
     }));
 
@@ -155,7 +138,6 @@ export async function DELETE(request: Request) {
 
   try {
     await prisma.mosResponse.deleteMany({});
-    await prisma.cmosResponse.deleteMany({});
     await prisma.evaluator.deleteMany({});
     return NextResponse.json({ success: true });
   } catch (error) {

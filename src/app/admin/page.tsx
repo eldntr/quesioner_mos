@@ -57,28 +57,10 @@ export default function AdminPage() {
           });
         });
       }
-      
-      if (entry.cmosResults) {
-        entry.cmosResults.forEach((res: any) => {
-          rows.push({
-            Timestamp: entry.timestamp,
-            Name: name,
-            Age: age,
-            Region: region,
-            Fluency: javaneseFluency,
-            Type: 'CMOS',
-            SampleId: res.sampleId,
-            Model: '',
-            Score_PA: '',
-            Score_N: '',
-            Score_CMOS: res.score,
-            Comment: res.comment || ''
-          });
-        });
-      }
+
     });
 
-    const headers = ['Timestamp', 'Name', 'Age', 'Region', 'Fluency', 'Type', 'SampleId', 'Model', 'Score_PA', 'Score_N', 'Score_CMOS', 'Comment'];
+    const headers = ['Timestamp', 'Name', 'Age', 'Region', 'Fluency', 'Type', 'SampleId', 'Model', 'Score_PA', 'Score_N', 'Comment'];
     const csvContent = [
       headers.join(','),
       ...rows.map(r => headers.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`).join(','))
@@ -139,7 +121,6 @@ export default function AdminPage() {
   }
 
   const allMosResults = scores.flatMap(s => s.mosResults || []);
-  const allCmosResults = scores.flatMap(s => s.cmosResults || []);
 
   const overallAvgPA = allMosResults.length 
     ? (allMosResults.reduce((sum, r) => sum + r.mos_pa, 0) / allMosResults.length).toFixed(2) 
@@ -147,11 +128,8 @@ export default function AdminPage() {
   const overallAvgN = allMosResults.length 
     ? (allMosResults.reduce((sum, r) => sum + r.mos_n, 0) / allMosResults.length).toFixed(2) 
     : '0.00';
-  const overallAvgCMOS = allCmosResults.length
-    ? (allCmosResults.reduce((sum, r) => sum + r.score, 0) / allCmosResults.length).toFixed(2)
-    : '0.00';
 
-  const models = ['GT', 'FT', 'LPEP', 'OMNI'];
+  const models = ['GT', 'LPEP_PPIM', 'FT', 'MMS', 'OMNIVOICE', 'ID'];
   const averagesPerModel = models.map(model => {
     const modelResults = allMosResults.filter(r => r.modelType === model);
     const avgPA = modelResults.length 
@@ -184,10 +162,6 @@ export default function AdminPage() {
           <p style={statValueStyle} className="text-gradient">{overallAvgN}</p>
         </div>
         <div style={statCardStyle}>
-          <h3 style={statTitleStyle}>Rata-rata Keseluruhan CMOS</h3>
-          <p style={statValueStyle} className="text-gradient">{parseFloat(overallAvgCMOS) > 0 ? `+${overallAvgCMOS}` : overallAvgCMOS}</p>
-        </div>
-        <div style={statCardStyle}>
           <h3 style={statTitleStyle}>Total Responden</h3>
           <p style={statValueStyle}>{scores.length}</p>
         </div>
@@ -198,9 +172,11 @@ export default function AdminPage() {
         {averagesPerModel.map(stats => {
           const modelNames: Record<string, string> = {
             'GT': 'Ground Truth',
+            'LPEP_PPIM': 'LPEP PPIM',
             'FT': 'Finetuning',
-            'LPEP': 'LPEP PPIM',
-            'OMNI': 'Omnivoice'
+            'MMS': 'MMS',
+            'OMNIVOICE': 'Omnivoice',
+            'ID': 'ID'
           };
           return (
             <div key={stats.model} style={{...statCardStyle, background: 'rgba(255,255,255,0.03)'}}>
@@ -254,23 +230,18 @@ export default function AdminPage() {
                 <th style={thStyle}>Total Sampel</th>
                 <th style={thStyle}>Rata-rata MOS-PA</th>
                 <th style={thStyle}>Rata-rata MOS-N</th>
-                <th style={thStyle}>Rata-rata CMOS</th>
               </tr>
             </thead>
             <tbody>
               {scores.map((score, idx) => {
                 const resCount = score.mosResults?.length || 0;
-                const cmosCount = score.cmosResults?.length || 0;
-                const totalSampel = resCount + cmosCount;
+                const totalSampel = resCount;
                 const avgPA = resCount 
                   ? (score.mosResults.reduce((sum: number, r: any) => sum + r.mos_pa, 0) / resCount).toFixed(2) 
                   : '0.00';
                 const avgN = resCount 
                   ? (score.mosResults.reduce((sum: number, r: any) => sum + r.mos_n, 0) / resCount).toFixed(2) 
                   : '0.00';
-                const avgCMOS = cmosCount
-                  ? (score.cmosResults.reduce((sum: number, r: any) => sum + r.score, 0) / cmosCount).toFixed(2)
-                  : '-';
 
                 return (
                   <tr key={idx} style={trStyle}>
@@ -283,9 +254,6 @@ export default function AdminPage() {
                     </td>
                     <td style={tdStyle}>
                       <span style={scoreBadgeStyle(parseFloat(avgN))}>{avgN}</span>
-                    </td>
-                    <td style={tdStyle}>
-                      {avgCMOS !== '-' ? <span style={scoreBadgeStyle(avgCMOS === '0.00' ? 3 : parseFloat(avgCMOS) > 0 ? 5 : 1)}>{parseFloat(avgCMOS) > 0 ? `+${avgCMOS}` : avgCMOS}</span> : '-'}
                     </td>
                   </tr>
                 );

@@ -12,7 +12,7 @@ const data = JSON.stringify({
   mos: [
     {
       sampleId: "jvm_00027_01760922907",
-      modelType: "LPEP",
+      modelType: "LPEP_PPIM",
       mos_n_score: 4.5,
       mos_pa_score: 5.0,
       comment: "Bagus sekali pelafalannya."
@@ -23,13 +23,34 @@ const data = JSON.stringify({
       mos_n_score: 5.0,
       mos_pa_score: 5.0,
       comment: "Ground truth selalu sempurna."
-    }
-  ],
-  cmos: [
+    },
     {
       sampleId: "jvm_00027_01760922907",
-      score: 2,
-      comment: "Audio LPEP jauh lebih baik daripada FT."
+      modelType: "FT",
+      mos_n_score: 4.0,
+      mos_pa_score: 4.0,
+      comment: "Cukup baik."
+    },
+    {
+      sampleId: "jvm_00027_01760922907",
+      modelType: "MMS",
+      mos_n_score: 3.5,
+      mos_pa_score: 4.0,
+      comment: "Agak robotik."
+    },
+    {
+      sampleId: "jvm_00027_01760922907",
+      modelType: "OMNIVOICE",
+      mos_n_score: 4.0,
+      mos_pa_score: 4.5,
+      comment: "Bagus."
+    },
+    {
+      sampleId: "jvm_00027_01760922907",
+      modelType: "ID",
+      mos_n_score: 4.2,
+      mos_pa_score: 4.3,
+      comment: "Alami."
     }
   ]
 });

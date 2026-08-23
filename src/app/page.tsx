@@ -32,9 +32,11 @@ interface Sample {
   id: string;
   text: string;
   audioGt: string;
-  audioFt: string;
   audioLpep: string;
+  audioFt: string;
+  audioMms: string;
   audioOmnivoice: string;
+  audioId: string;
 }
 
 // Fisher-Yates shuffle
@@ -51,26 +53,20 @@ export default function QuestionnairePage() {
   const [identity, setIdentity] = useState<EvaluatorIdentity | null>(null);
   const [samples, setSamples] = useState<Sample[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [stage, setStage] = useState<'intro' | 'mos' | 'cmos' | 'done'>('intro');
+  const [stage, setStage] = useState<'intro' | 'mos' | 'done'>('intro');
   
   // States for MOS
   const [mosOrder, setMosOrder] = useState<{type: string, url: string}[]>([]);
   const [mosScores, setMosScores] = useState<Record<string, {mos_n: number|null, mos_pa: number|null, comment: string}>>({});
   const [currentMosSlide, setCurrentMosSlide] = useState(0);
   
-  // States for CMOS
-  const [cmosOrder, setCmosOrder] = useState<{isLpepA: boolean} | null>(null);
-  const [cmosScore, setCmosScore] = useState<number|null>(null); // -3 to 3 (absolute scale where positive means LPEP is better)
-  const [cmosComment, setCmosComment] = useState('');
-
   // Final comments
   const [finalComment, setFinalComment] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [allResults, setAllResults] = useState<{
-    mos: any[],
-    cmos: any[]
-  }>({ mos: [], cmos: [] });
+    mos: any[]
+  }>({ mos: [] });
 
   useEffect(() => {
     fetch('/api/audio')
@@ -87,26 +83,25 @@ export default function QuestionnairePage() {
   useEffect(() => {
     if (samples.length > 0 && currentIndex < samples.length) {
       const current = samples[currentIndex];
-      // Randomize MOS (4 audios)
+      // Randomize MOS (6 audios)
       const options = [
         { type: 'GT', url: current.audioGt },
+        { type: 'LPEP_PPIM', url: current.audioLpep },
         { type: 'FT', url: current.audioFt },
-        { type: 'LPEP', url: current.audioLpep },
-        { type: 'OMNI', url: current.audioOmnivoice }
+        { type: 'MMS', url: current.audioMms },
+        { type: 'OMNIVOICE', url: current.audioOmnivoice },
+        { type: 'ID', url: current.audioId }
       ];
       setMosOrder(shuffle(options));
       setMosScores({
         'GT': {mos_n: null, mos_pa: null, comment: ''},
+        'LPEP_PPIM': {mos_n: null, mos_pa: null, comment: ''},
         'FT': {mos_n: null, mos_pa: null, comment: ''},
-        'LPEP': {mos_n: null, mos_pa: null, comment: ''},
-        'OMNI': {mos_n: null, mos_pa: null, comment: ''},
+        'MMS': {mos_n: null, mos_pa: null, comment: ''},
+        'OMNIVOICE': {mos_n: null, mos_pa: null, comment: ''},
+        'ID': {mos_n: null, mos_pa: null, comment: ''},
       });
       setCurrentMosSlide(0);
-      
-      // Randomize CMOS
-      setCmosOrder({ isLpepA: Math.random() > 0.5 });
-      setCmosScore(null);
-      setCmosComment('');
     }
   }, [currentIndex, samples]);
 
@@ -120,7 +115,7 @@ export default function QuestionnairePage() {
     setStage('mos');
   };
 
-  const handleMosNext = () => {
+  const handleMosNext = async () => {
     // Validate
     const isComplete = Object.values(mosScores).every(s => s.mos_n !== null && s.mos_pa !== null);
     if (!isComplete) {
@@ -138,35 +133,16 @@ export default function QuestionnairePage() {
       comment: scores.comment
     }));
     
+    const updatedMosList = [...allResults.mos, ...newMos];
     setAllResults(prev => ({
       ...prev,
-      mos: [...prev.mos, ...newMos]
+      mos: updatedMosList
     }));
-    
-    setStage('cmos');
-  };
-
-  const handleCmosNext = async () => {
-    if (cmosScore === null) {
-      alert("Mohon pilih skor perbandingan CMOS.");
-      return;
-    }
-
-    const currentSample = samples[currentIndex];
-    const cmosResult = {
-      sampleId: currentSample.id,
-      score: cmosScore!,
-      comment: cmosComment
-    };
-    
-    const updatedCmosList = [...allResults.cmos, cmosResult];
-    setAllResults(prev => ({...prev, cmos: updatedCmosList}));
     
     if (currentIndex < samples.length - 1) {
       setCurrentIndex(prev => prev + 1);
-      setStage('mos');
     } else {
-        // Auto-submit on the last sample
+      // Auto-submit on the last sample
       setIsSubmitting(true);
       try {
         const payload = {
@@ -174,8 +150,7 @@ export default function QuestionnairePage() {
             ...identity,
             finalComment: ''
           },
-          mos: allResults.mos,
-          cmos: updatedCmosList
+          mos: updatedMosList
         };
 
         const res = await fetch('/api/scores', {
@@ -281,7 +256,7 @@ export default function QuestionnairePage() {
 
           <div style={{marginBottom: '2rem', display: 'flex', justifyContent: 'center'}}>
             <span style={{background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1rem', borderRadius: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
-              Audio {currentMosSlide + 1} dari 4
+              Audio {currentMosSlide + 1} dari {mosOrder.length}
             </span>
           </div>
 
@@ -349,7 +324,7 @@ export default function QuestionnairePage() {
               </button>
             )}
             
-            {currentMosSlide < 3 ? (
+            {currentMosSlide < mosOrder.length - 1 ? (
               <button 
                 onClick={() => {
                   setCurrentMosSlide(prev => prev + 1);
@@ -378,9 +353,9 @@ export default function QuestionnairePage() {
                   opacity: isNextDisabled ? 0.5 : 1,
                   cursor: isNextDisabled ? 'not-allowed' : 'pointer'
                 }} 
-                disabled={isNextDisabled}
+                disabled={isNextDisabled || isSubmitting}
               >
-                Lanjut ke Perbandingan Audio
+                {isSubmitting ? 'Mengirim Data...' : (currentIndex < samples.length - 1 ? 'Sampel Selanjutnya' : 'Selesai & Kirim')}
               </button>
             )}
           </div>
@@ -389,166 +364,7 @@ export default function QuestionnairePage() {
     );
   }
 
-  if (stage === 'cmos') {
-    if (!cmosOrder) return null;
-    
-    // UI mapping
-    // isLpepA = true -> Audio A = LPEP, Audio B = FT
-    // If user picks -3 (Audio A jauh lebih baik) -> meaning LPEP is +3.
-    // So if isLpepA = true, score mapping:
-    // UI selection (-3 to 3 where -3 is A, +3 is B). 
-    // Internally we save score relative to LPEP vs FT. positive means LPEP > FT.
-    // If A = LPEP: LPEP > FT means they chose A (negative UI values). So absoluteScore = -uiValue.
-    // If A = FT: LPEP > FT means they chose B (positive UI values). So absoluteScore = uiValue.
 
-    const handleCmosSelect = (uiValue: number) => {
-      const absScore = cmosOrder.isLpepA ? -uiValue : uiValue;
-      setCmosScore(absScore);
-    };
-
-    const currentUiValue = cmosScore === null ? null : (cmosOrder.isLpepA ? -cmosScore : cmosScore);
-
-    return (
-      <div style={containerStyle}>
-        <div style={progressTextStyle}>Sampel {currentIndex + 1} dari {samples.length} - Bagian 2: Perbandingan Audio</div>
-        
-        <div className="glass-panel" style={cardStyle}>
-          <h2 style={titleStyle} className="text-gradient">Evaluasi Perbandingan</h2>
-          <p style={{marginBottom: '0.5rem'}}>Bandingkan kualitas kedua audio berikut:</p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem', fontStyle: 'italic' }}>
-            * Jika suara terdengar kurang jelas, mohon kencangkan volume perangkat (speaker/headphone) Anda.
-          </p>
-
-
-
-          <div style={{display: 'flex', gap: '2rem', marginBottom: '2rem', flexDirection: 'column'}}>
-            <div style={{padding: '1rem', border: '1px solid var(--border-glass)', borderRadius: '8px'}}>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', color: 'var(--accent-primary)', textAlign: 'center', fontWeight: 700 }}>
-                Audio Atas
-              </h3>
-              <audio controls src={cmosOrder.isLpepA ? currentSample.audioLpep : currentSample.audioFt} style={{width: '100%'}} />
-            </div>
-            <div style={{padding: '1rem', border: '1px solid var(--border-glass)', borderRadius: '8px'}}>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', color: 'var(--accent-secondary)', textAlign: 'center', fontWeight: 700 }}>
-                Audio Bawah
-              </h3>
-              <audio controls src={cmosOrder.isLpepA ? currentSample.audioFt : currentSample.audioLpep} style={{width: '100%'}} />
-            </div>
-          </div>
-
-          <div style={{marginBottom: '2rem'}}>
-            <h3 style={{marginBottom: '1rem'}}>Penilaian Perbandingan</h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
-              <p style={{ fontSize: '1.1rem', fontStyle: 'italic', color: 'var(--text-primary)', fontWeight: 500, textAlign: 'center', marginBottom: '0.5rem' }}>
-                "{currentSample.text}"
-              </p>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
-                <span>⬅️ Atas Lebih Baik</span>
-                <span>Bawah Lebih Baik ➡️</span>
-              </div>
-              
-              <div style={{ position: 'relative', width: '100%', padding: '0.5rem 0' }}>
-                <input 
-                  type="range" 
-                  min={-6} 
-                  max={6} 
-                  step={1}
-                  value={currentUiValue === null ? 0 : currentUiValue}
-                  onChange={(e) => handleCmosSelect(parseInt(e.target.value))}
-                  onClick={(e) => handleCmosSelect(parseInt(e.currentTarget.value))}
-                  onTouchEnd={(e) => handleCmosSelect(parseInt(e.currentTarget.value))}
-                  style={{ width: '100%', cursor: 'pointer', appearance: 'none', height: '8px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', outline: 'none' }}
-                  className={`cmos-slider ${currentUiValue === null ? 'thumb-hidden' : ''}`}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px', marginTop: '0.5rem' }}>
-                  {[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map(tick => (
-                    <span key={tick} style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 600 }}>{tick > 0 ? `+${tick}` : tick}</span>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ textAlign: 'center', minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {currentUiValue !== null ? (
-                  <strong style={{ color: 'var(--accent-primary)', fontSize: '1rem' }}>
-                    {[
-                      {val: -6, label: 'Audio Atas sangat jauh lebih baik (-6)'},
-                      {val: -5, label: 'Audio Atas jauh lebih baik (-5)'},
-                      {val: -4, label: 'Audio Atas lebih baik (-4)'},
-                      {val: -3, label: 'Audio Atas sedikit lebih baik (-3)'},
-                      {val: -2, label: 'Audio Atas sedikit lebih baik (-2)'},
-                      {val: -1, label: 'Audio Atas sangat sedikit lebih baik (-1)'},
-                      {val: 0, label: 'Keduanya sama kualitasnya (0)'},
-                      {val: 1, label: 'Audio Bawah sangat sedikit lebih baik (+1)'},
-                      {val: 2, label: 'Audio Bawah sedikit lebih baik (+2)'},
-                      {val: 3, label: 'Audio Bawah sedikit lebih baik (+3)'},
-                      {val: 4, label: 'Audio Bawah lebih baik (+4)'},
-                      {val: 5, label: 'Audio Bawah jauh lebih baik (+5)'},
-                      {val: 6, label: 'Audio Bawah sangat jauh lebih baik (+6)'},
-                    ].find(o => o.val === currentUiValue)?.label}
-                  </strong>
-                ) : (
-                  <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>Klik pada area garis slider (rentang) di atas untuk membandingkan...</span>
-                )}
-              </div>
-            </div>
-            
-            <style dangerouslySetInnerHTML={{__html: `
-              .cmos-slider::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                appearance: none;
-                width: 24px;
-                height: 24px;
-                border-radius: 50%;
-                background: var(--accent-secondary);
-                cursor: pointer;
-                box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
-                transition: transform 0.1s;
-              }
-              .cmos-slider::-webkit-slider-thumb:hover {
-                transform: scale(1.2);
-              }
-              .cmos-slider::-moz-range-thumb {
-                width: 24px;
-                height: 24px;
-                border-radius: 50%;
-                background: var(--accent-secondary);
-                cursor: pointer;
-                box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
-                border: none;
-              }
-              .cmos-slider.thumb-hidden::-webkit-slider-thumb {
-                background: transparent !important;
-                box-shadow: none !important;
-              }
-              .cmos-slider.thumb-hidden::-moz-range-thumb {
-                background: transparent !important;
-                box-shadow: none !important;
-              }
-            `}} />
-          </div>
-
-          <div style={{marginTop: '1rem'}}>
-            <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: 500}}>Komentar (Opsional):</label>
-            <input 
-              type="text" 
-              value={cmosComment}
-              onChange={(e) => setCmosComment(e.target.value)}
-              style={{width: '100%', padding: '0.75rem', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)', color: 'white'}}
-              placeholder="Tulis alasan singkat..."
-            />
-          </div>
-
-          <div style={actionContainerStyle}>
-            <button onClick={handleCmosNext} disabled={cmosScore === null || isSubmitting} style={{...buttonStyle, opacity: (cmosScore === null || isSubmitting) ? 0.5 : 1}}>
-              {isSubmitting ? 'Mengirim Data...' : (currentIndex < samples.length - 1 ? 'Sampel Selanjutnya' : 'Selesai & Kirim')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (stage === 'done') {
     return (
